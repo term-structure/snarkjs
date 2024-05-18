@@ -161,6 +161,8 @@ export async function getRandomRng(entropy) {
 }
 
 export async function rngFromBeaconParams(beaconHash, numIterationsExp) {
+    await Blake2b.ready();
+
     let nIterationsInner;
     let nIterationsOuter;
     if (numIterationsExp<32) {
@@ -174,7 +176,9 @@ export async function rngFromBeaconParams(beaconHash, numIterationsExp) {
     let curHash = beaconHash;
     for (let i=0; i<nIterationsOuter; i++) {
         for (let j=0; j<nIterationsInner; j++) {
-            curHash = await sha256digest(curHash);
+            const hasher = Blake2b(64);
+            hasher.update(curHash);
+            curHash = hasher.digest();
         }
     }
 
