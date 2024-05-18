@@ -184,15 +184,6 @@ function getRandomBytes(n) {
     return array;
 }
 
-async function sha256digest(data) {
-    if (process.browser) { // Supported
-        const buffer = await globalThis.crypto.subtle.digest("SHA-256", data.buffer);
-        return new Uint8Array(buffer);
-    } else { // NodeJS
-        return crypto__default["default"].createHash("sha256").update(data).digest();
-    }
-}
-
 /**
  * @param {Uint8Array} data
  * @param {number} offset
@@ -221,6 +212,8 @@ async function getRandomRng(entropy) {
 }
 
 async function rngFromBeaconParams(beaconHash, numIterationsExp) {
+    await Blake2b__default["default"].ready();
+
     let nIterationsInner;
     let nIterationsOuter;
     if (numIterationsExp<32) {
@@ -234,7 +227,9 @@ async function rngFromBeaconParams(beaconHash, numIterationsExp) {
     let curHash = beaconHash;
     for (let i=0; i<nIterationsOuter; i++) {
         for (let j=0; j<nIterationsInner; j++) {
-            curHash = await sha256digest(curHash);
+            const hasher = Blake2b__default["default"](64);
+            hasher.update(curHash);
+            curHash = hasher.digest();
         }
     }
 

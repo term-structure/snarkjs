@@ -872,8 +872,8 @@ class BigMemFile {
     }
 }
 
-const O_TRUNC = 1024;
-const O_CREAT = 512;
+const O_TRUNC = 512;
+const O_CREAT = 64;
 const O_RDWR = 2;
 const O_RDONLY = 0;
 
@@ -2255,13 +2255,6 @@ function getRandomBytes(n) {
     return array;
 }
 
-async function sha256digest(data) {
-    { // Supported
-        const buffer = await globalThis.crypto.subtle.digest("SHA-256", data.buffer);
-        return new Uint8Array(buffer);
-    }
-}
-
 /**
  * @param {Uint8Array} data
  * @param {number} offset
@@ -2290,6 +2283,8 @@ async function getRandomRng(entropy) {
 }
 
 async function rngFromBeaconParams(beaconHash, numIterationsExp) {
+    await blake2bWasm.exports.ready();
+
     let nIterationsInner;
     let nIterationsOuter;
     if (numIterationsExp<32) {
@@ -2303,7 +2298,9 @@ async function rngFromBeaconParams(beaconHash, numIterationsExp) {
     let curHash = beaconHash;
     for (let i=0; i<nIterationsOuter; i++) {
         for (let j=0; j<nIterationsInner; j++) {
-            curHash = await sha256digest(curHash);
+            const hasher = blake2bWasm.exports(64);
+            hasher.update(curHash);
+            curHash = hasher.digest();
         }
     }
 
